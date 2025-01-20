@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farming Simulator 25 Server Info</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://wallpaperaccess.com/full/1660002.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white; /* Tekstkleur aanpassen voor betere leesbaarheid op donkere achtergrond */
+        }
+        .server-info {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5); /* Zwarte semi-transparante achtergrond voor leesbaarheid */
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .slot-info {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .map-image {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .map-image img {
+            width: 341px; /* 2/3 van 512px */
+            height: 341px; /* 2/3 van 512px */
+        }
+        .players-list {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            list-style-type: none;
+        }
+        .players-list li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Server Informatie - Farming Simulator 25</h1>
+
+    <div id="serverInfo" class="server-info">
+        <p><strong>Server Naam:</strong> <span id="serverName">Laden...</span></p>
+        <p><strong>Versie:</strong> <span id="serverVersion">Laden...</span></p>
+        <p><strong>Mapnaam:</strong> <span id="mapName">Laden...</span></p>
+        <p><strong>Map Grootte:</strong> <span id="mapSize">Laden...</span></p>
+        <div id="mapImageContainer" class="map-image"></div>
+    </div>
+
+    <div id="slotInfo" class="slot-info">
+        <p><strong>Aantal gebruikte slots:</strong> <span id="usedSlots">Laden...</span> / <span id="totalSlots">Laden...</span></p>
+    </div>
+
+    <div id="playersListContainer">
+        <h2>Spelers:</h2>
+        <ul id="playersList" class="players-list"></ul>
+    </div>
+
+    <p><em>De gegevens worden elke 30 seconden automatisch vernieuwd.</em></p>
+
+    <script>
+        // XML URL
+        const xmlUrl = "http://195.179.226.112:8090/feed/dedicated-server-stats.xml?code=5cbDX7qC3sF8vPj4";
+
+        // Functie om de XML te laden
+        async function loadServerStats() {
+            try {
+                const response = await fetch(xmlUrl);
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+                // Server informatie ophalen
+                const serverElement = xmlDoc.getElementsByTagName("Server")[0];
+                if (serverElement) {
+                    const serverName = serverElement.getAttribute("name");
+                    const serverVersion = serverElement.getAttribute("version");
+                    const mapName = serverElement.getAttribute("mapName");
+                    const mapSize = serverElement.getAttribute("mapSize");
+                    const mapOverview = serverElement.getAttribute("mapOverviewFilename");
+
+                    // Slot informatie ophalen
+                    const slots = xmlDoc.getElementsByTagName("Player");
+                    const totalSlots = slots.length;
+                    const usedSlots = Array.from(slots).filter(slot => slot.getAttribute("isUsed") === "true").length;
+
+                    // Gegevens weergeven op de pagina
+                    document.getElementById("serverName").textContent = serverName || "Niet beschikbaar";
+                    document.getElementById("serverVersion").textContent = serverVersion || "Niet beschikbaar";
+                    document.getElementById("mapName").textContent = mapName || "Niet beschikbaar";
+                    document.getElementById("mapSize").textContent = mapSize || "Niet beschikbaar";
+                    document.getElementById("usedSlots").textContent = usedSlots;
+                    document.getElementById("totalSlots").textContent = totalSlots;
+
+                    // Voeg de afbeelding toe bij het overzicht, direct de URL gebruiken
+                    const mapImageUrl = "http://195.179.226.112:8090/feed/dedicated-server-stats-map.jpg?code=5cbDX7qC3sF8vPj4&quality=60&size=512";
+                    const mapImageContainer = document.getElementById("mapImageContainer");
+                    mapImageContainer.innerHTML = ''; // Maak de container eerst leeg
+                    const img = new Image();
+                    img.src = mapImageUrl;
+                    mapImageContainer.appendChild(img); // Voeg de afbeelding toe
+
+                    // Spelerinformatie ophalen en weergeven
+                    const playersList = document.getElementById("playersList");
+                    playersList.innerHTML = ''; // Maak de lijst eerst leeg
+                    Array.from(slots).forEach(slot => {
+                        const playerName = slot.textContent;
+                        if (playerName) {
+                            const li = document.createElement("li");
+                            li.textContent = playerName;
+                            playersList.appendChild(li);
+                        }
+                    });
+
+                    console.log("Servergegevens succesvol vernieuwd");
+                } else {
+                    console.error("Fout: Geen serverelement gevonden in de XML");
+                }
+            } catch (error) {
+                console.error("Fout bij het laden van de servergegevens:", error);
+            }
+        }
+
+        // Servergegevens elke 30 seconden vernieuwen
+        setInterval(loadServerStats, 30000);
+
+        // Eerste keer laden bij het openen van de pagina
+        window.onload = loadServerStats;
+    </script>
+
+</body>
+</html>
